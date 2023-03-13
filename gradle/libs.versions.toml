@@ -35,7 +35,7 @@ wiremock = "2.33.2"
 
 # plugins
 detekt = "1.21.0"
-dokka = "1.6.10"
+dokka = "1.8.10"
 jacoco = "0.8.8"
 # klint gradle plugin breaks with 0.46.x+
 ktlint-core = "0.45.2"
