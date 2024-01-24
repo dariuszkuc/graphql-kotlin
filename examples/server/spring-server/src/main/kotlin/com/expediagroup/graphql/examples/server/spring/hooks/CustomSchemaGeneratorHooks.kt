@@ -16,18 +16,26 @@
 
 package com.expediagroup.graphql.examples.server.spring.hooks
 
+import com.expediagroup.graphql.examples.server.spring.directives.CUSTOM_OBJECT_INPUT_TYPE
+import com.expediagroup.graphql.examples.server.spring.directives.CustomObject
 import com.expediagroup.graphql.examples.server.spring.model.MyValueClass
+import com.expediagroup.graphql.generator.directives.DirectiveMetaInformation
 import com.expediagroup.graphql.generator.directives.KotlinDirectiveWiringFactory
 import com.expediagroup.graphql.generator.hooks.SchemaGeneratorHooks
 import graphql.GraphQLContext
 import graphql.execution.CoercedVariables
 import graphql.Scalars
+import graphql.language.IntValue
+import graphql.language.ObjectField
+import graphql.language.ObjectValue
 import graphql.language.StringValue
 import graphql.language.Value
 import graphql.schema.Coercing
 import graphql.schema.CoercingParseLiteralException
 import graphql.schema.CoercingParseValueException
 import graphql.schema.CoercingSerializeException
+import graphql.schema.GraphQLAppliedDirective
+import graphql.schema.GraphQLDirective
 import graphql.schema.GraphQLScalarType
 import graphql.schema.GraphQLType
 import org.springframework.beans.factory.BeanFactoryAware
@@ -39,6 +47,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.full.createType
 import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.full.memberProperties
 
 /**
  * Schema generator hook that adds additional scalar types.
@@ -57,7 +66,48 @@ class CustomSchemaGeneratorHooks(override val wiringFactory: KotlinDirectiveWiri
                 else -> null
             }
         }
+        CustomObject::class -> CUSTOM_OBJECT_INPUT_TYPE
         else -> null
+    }
+
+    override fun willApplyDirective(directiveInfo: DirectiveMetaInformation, directive: GraphQLDirective): GraphQLAppliedDirective? {
+        return if (directiveInfo.effectiveName == "custom") {
+            // we need to manually transform @custom directive definition to handle input object arguments
+            val customObject = directiveInfo.directive.annotationClass.memberProperties
+                .first { it.name == "customObject" }
+                .call(directiveInfo.directive) as CustomObject
+
+            return directive.toAppliedDirective()
+                .transform { appliedDirectiveBuilder ->
+                    directive.getArgument("name")
+                        .toAppliedArgument()
+                        .transform { nameArgBuilder ->
+                            val nameProp = directiveInfo.directive.annotationClass.memberProperties.first { it.name == "name" }
+                            val value = nameProp.call(directiveInfo.directive)
+                            nameArgBuilder.valueProgrammatic(value)
+                        }
+                        .let {
+                            appliedDirectiveBuilder.argument(it)
+                        }
+                    directive.getArgument("customObject")
+                        .toAppliedArgument()
+                        .transform { argumentBuilder ->
+                            argumentBuilder.valueLiteral(
+                                ObjectValue(
+                                    listOf(
+                                        ObjectField("first", StringValue(customObject.first)),
+                                        ObjectField("second", IntValue(customObject.second.toBigInteger()))
+                                    )
+                                )
+                            )
+                        }
+                        .let {
+                            appliedDirectiveBuilder.argument(it)
+                        }
+                }
+        } else {
+            super.willApplyDirective(directiveInfo, directive)
+        }
     }
 
     /**

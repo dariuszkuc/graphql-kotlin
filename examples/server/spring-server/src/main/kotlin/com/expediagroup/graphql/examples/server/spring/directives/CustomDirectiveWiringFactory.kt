@@ -22,7 +22,12 @@ import com.expediagroup.graphql.generator.directives.KotlinSchemaDirectiveWiring
 import graphql.schema.GraphQLDirectiveContainer
 import kotlin.reflect.KClass
 
-class CustomDirectiveWiringFactory : KotlinDirectiveWiringFactory(manualWiring = mapOf<String, KotlinSchemaDirectiveWiring>("lowercase" to LowercaseSchemaDirectiveWiring())) {
+class CustomDirectiveWiringFactory : KotlinDirectiveWiringFactory(
+    manualWiring = mapOf<String, KotlinSchemaDirectiveWiring>(
+        "lowercase" to LowercaseSchemaDirectiveWiring(),
+        "custom" to CustomDirectiveWiring()
+    )
+) {
 
     private val stringEvalDirectiveWiring = StringEvalSchemaDirectiveWiring()
     private val caleOnlyDirectiveWiring = SpecificValueOnlySchemaDirectiveWiring()

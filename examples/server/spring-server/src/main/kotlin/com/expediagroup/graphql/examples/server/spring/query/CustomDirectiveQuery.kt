@@ -16,6 +16,8 @@
 
 package com.expediagroup.graphql.examples.server.spring.query
 
+import com.expediagroup.graphql.examples.server.spring.directives.CustomDirective
+import com.expediagroup.graphql.examples.server.spring.directives.CustomObject
 import com.expediagroup.graphql.examples.server.spring.directives.LowercaseDirective
 import com.expediagroup.graphql.examples.server.spring.directives.SpecificValueOnly
 import com.expediagroup.graphql.examples.server.spring.directives.StringEval
@@ -40,4 +42,7 @@ class CustomDirectiveQuery : Query {
     @GraphQLDescription("Returns message modified by the manually wired directive to force lowercase")
     @LowercaseDirective
     fun forceLowercaseEcho(msg: String) = msg
+
+    @CustomDirective(name = "foo", customObject = CustomObject(first = "bar", second = 123))
+    fun custom() = "custom directives"
 }
